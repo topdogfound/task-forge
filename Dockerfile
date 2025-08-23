@@ -33,4 +33,10 @@ RUN php artisan config:clear && \
     php artisan route:clear && \
     php artisan view:clear
 
-CMD ["php-fpm"]
+# Copy entrypoint script
+COPY entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
+# Expose ports
+EXPOSE 10000 5173
+# Use entrypoint
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
