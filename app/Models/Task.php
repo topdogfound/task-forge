@@ -10,28 +10,40 @@ use App\Models\UserTask;
 class Task extends Model
 {
     protected $fillable = [
-        'manager_id', 
-        'task_name', 
-        'description', 
-        'number_of_uploads', 
+        'manager_id',
+        'task_name',
+        'description',
+        'number_of_uploads',
         'is_active'
     ];
+    protected $casts = [
+        'is_active' => 'boolean',
+        'number_of_uploads' => 'integer',
+    ];
 
-    public function manager(): BelongsTo
-    {
-        return $this->belongsTo(User::class, 'manager_id');
-    }
-    
-    public function userTasks(): HasMany
+/**
+     * Get the user assignments for this task.
+     */
+    public function userTasks()
     {
         return $this->hasMany(UserTask::class);
     }
 
-    // Active if no current non-expired in_progress reservation
-    public function scopeAvailable($q)
+    /**
+     * Get the users who have started this task.
+     */
+    public function users()
     {
-        return $q->where('is_active', true)->whereDoesntHave('userTasks', function ($qq) {
-            $qq->where('status', 'in_progress')->where('expires_at', '>', now());
-        });
+        return $this->belongsToMany(User::class, 'user_tasks')
+                    ->withPivot(['status', 'started_at', 'expires_at', 'completed_at'])
+                    ->withTimestamps();
+    }
+
+    /**
+     * Get the manager who created this task.
+     */
+    public function manager()
+    {
+        return $this->belongsTo(User::class, 'manager_id');
     }
 }
