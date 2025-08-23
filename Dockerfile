@@ -23,6 +23,7 @@ RUN apk add --no-cache \
     sqlite-dev \
     oniguruma-dev \
     libzip-dev \
+    bash \
     && docker-php-ext-install \
     pdo \
     pdo_mysql \
