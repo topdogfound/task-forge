@@ -8,3 +8,4 @@ echo "Seeding database..."
 php artisan db:seed --force
 
 # Do not start PHP-FPM here
+exec "$@"
