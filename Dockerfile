@@ -54,10 +54,12 @@ RUN mkdir -p database && \
     chmod -R 775 database
 
 # Install PHP dependencies
-RUN composer install  --no-interaction --optimize-autoloader --no-cache
+RUN composer install --no-dev --no-interaction --optimize-autoloader --no-cache
 
-# Configure PHP-FPM to listen on port 10000
-RUN sed -i 's/listen = 127.0.0.1:9000/listen = 0.0.0.0:10000/' /usr/local/etc/php-fpm.d/www.conf
+# Configure PHP-FPM to listen on port 10000 and set user
+RUN sed -i 's/listen = 127.0.0.1:9000/listen = 0.0.0.0:10000/' /usr/local/etc/php-fpm.d/www.conf && \
+    sed -i 's/user = www-data/user = www/' /usr/local/etc/php-fpm.d/www.conf && \
+    sed -i 's/group = www-data/group = www/' /usr/local/etc/php-fpm.d/www.conf
 
 # Copy and set up entrypoint
 COPY --chown=www:www entrypoint.sh /usr/local/bin/entrypoint.sh
