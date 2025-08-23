@@ -1,5 +1,5 @@
 import { Form, Head } from '@inertiajs/react';
-import { LoaderCircle } from 'lucide-react';
+import { Briefcase, User, UserCog, LoaderCircle } from 'lucide-react';
 
 import InputError from '@/components/input-error';
 import TextLink from '@/components/text-link';
@@ -7,6 +7,15 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import AuthLayout from '@/layouts/auth-layout';
+import {
+    Select,
+    SelectContent,
+    SelectGroup,
+    SelectItem,
+    SelectLabel,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select"
 
 export default function Register() {
     return (
@@ -77,6 +86,32 @@ export default function Register() {
                                     placeholder="Confirm password"
                                 />
                                 <InputError message={errors.password_confirmation} />
+                            </div>
+                            <div className="flex flex-col gap-2">
+                                <Select defaultValue="user" name="role">
+                                    <SelectTrigger className="w-[200px]">
+                                        <SelectValue placeholder="Select a role" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectGroup>
+                                            <SelectLabel>Roles</SelectLabel>
+                                            <SelectItem value="user">
+                                                <div className="flex items-center gap-2">
+                                                    <User className="h-4 w-4 text-muted-foreground" />
+                                                    User
+                                                </div>
+                                            </SelectItem>
+                                            <SelectItem value="manager">
+                                                <div className="flex items-center gap-2">
+                                                    <UserCog className="h-4 w-4 text-muted-foreground" />
+                                                    Manager
+                                                </div>
+                                            </SelectItem>
+                                        </SelectGroup>
+                                    </SelectContent>
+                                </Select>
+
+                                <InputError message={errors.role} />
                             </div>
 
                             <Button type="submit" className="mt-2 w-full" tabIndex={5}>
