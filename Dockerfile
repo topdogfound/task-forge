@@ -31,7 +31,7 @@ COPY --from=frontend /app/dist ./public/build
 RUN mkdir -p database && touch database/database.sqlite && chmod 777 database/database.sqlite
 
 # Install PHP dependencies
-RUN composer install --no-dev --optimize-autoloader --no-interaction
+RUN composer install --optimize-autoloader --no-interaction
 
 # Expose port
 EXPOSE 10000
