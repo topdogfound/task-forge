@@ -1,11 +1,11 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
-import { Input } from '@components/ui/input';
-import { Textarea } from '@components/ui/textarea';
-import { Button } from '@components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Button } from '@/components/ui/button';
 import { Head } from '@inertiajs/react';
-import { Label } from '@components/ui/label';
+import { Label } from '@/components/ui/label';
 import { Plus } from 'lucide-react';
 import { useState } from 'react';
 
