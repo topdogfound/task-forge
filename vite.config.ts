@@ -18,7 +18,7 @@ export default defineConfig({
         jsx: 'automatic',
     },
     build: {
-        outDir: 'dist', // make sure it's 'dist'
+        outDir: 'public/build',
         emptyOutDir: true,
     },
     resolve: {

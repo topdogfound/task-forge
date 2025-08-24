@@ -13,7 +13,7 @@ RUN npm install --include=dev
 COPY . .
 
 # Build assets (fallback: ensure empty build dir exists)
-RUN npm run build || (echo "⚠️ Skipping npm build, creating empty build folder" && mkdir -p public/build)
+RUN npm run build:ssr || (echo "⚠️ Skipping npm build, creating empty build folder" && mkdir -p public/build)
 
 
 # -------------------------
