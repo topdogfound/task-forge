@@ -2,7 +2,7 @@ import AppLayout from '@/layouts/app-layout';
 import { Head, Link, usePage, router } from '@inertiajs/react';
 import { Button } from '@/components/ui/button';
 import { type BreadcrumbItem } from '@/types';
-import { Plus } from 'lucide-react';
+import { AlertCircle, Plus } from 'lucide-react';
 import {
   Pagination,
   PaginationContent,
@@ -15,7 +15,6 @@ import {
 import { CompleteTaskModal } from '@/components/complete-task';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
-// Task interface
 interface Task {
   id: number;
   name: string;
@@ -82,22 +81,14 @@ export default function Tasks() {
 
   const renderPaginationItems = () => {
     const { meta } = tasks;
-    const items: JSX.Element[] = [];
-
-    meta.links.forEach((link, index) => {
-      if (link.label === '&laquo; Previous' || link.label === 'Next &raquo;') return;
-
-      if (link.label === '...') {
-        items.push(
+    return meta.links
+      .filter((link) => link.label !== '&laquo; Previous' && link.label !== 'Next &raquo;')
+      .map((link, index) =>
+        link.label === '...' ? (
           <PaginationItem key={`ellipsis-${index}`}>
             <PaginationEllipsis />
           </PaginationItem>
-        );
-        return;
-      }
-
-      if (link.url) {
-        items.push(
+        ) : link.url ? (
           <PaginationItem key={index}>
             <PaginationLink
               href="#"
@@ -110,11 +101,8 @@ export default function Tasks() {
               {link.label}
             </PaginationLink>
           </PaginationItem>
-        );
-      }
-    });
-
-    return items;
+        ) : null
+      );
   };
 
   return (
@@ -134,9 +122,8 @@ export default function Tasks() {
               )}
             </div>
 
-            {/* Cards Grid */}
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {tasks.data.map((task: Task) => (
+              {tasks.data.map((task) => (
                 <Card key={task.id} className="shadow-md hover:shadow-lg transition rounded-2xl">
                   <CardHeader>
                     <CardTitle className="flex justify-between items-center">
@@ -159,7 +146,6 @@ export default function Tasks() {
                       <span className="px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 text-xs">
                         {task.number_of_uploads} Uploads
                       </span>
-
                       {task.in_progress && (
                         <span className="px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-800 text-xs">
                           In Progress
@@ -170,7 +156,9 @@ export default function Tasks() {
                     <div className="flex gap-2 mt-2 justify-end">
                       {task.permissions.can_start && !task.in_progress && (
                         <Link href={route('tasks.start', task.id)}>
-                          <Button size="sm" className="flex-1">Start</Button>
+                          <Button size="sm" className="flex-1">
+                            Start
+                          </Button>
                         </Link>
                       )}
                       {task.permissions.can_complete && <CompleteTaskModal task={task} />}
@@ -180,7 +168,6 @@ export default function Tasks() {
               ))}
             </div>
 
-            {/* Pagination */}
             {tasks.meta.last_page > 1 && (
               <div className="flex justify-center mt-6">
                 <Pagination>
@@ -213,7 +200,7 @@ export default function Tasks() {
               </div>
             )}
           </>
-        ) : (
+        ) : tasks.current_user_role === 'manager' ? (
           <div className="text-center py-12">
             <div className="mx-auto w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-4">
               <Plus className="h-8 w-8 text-gray-400" />
@@ -226,6 +213,14 @@ export default function Tasks() {
                 Create Your First Task
               </Button>
             </Link>
+          </div>
+        ) : (
+          <div className="text-center py-12">
+            <div className="mx-auto w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+              <AlertCircle className="h-8 w-8 text-gray-400" />
+            </div>
+            <h3 className="text-xl font-semibold text-gray-900 mb-2">No tasks available</h3>
+            <p className="text-gray-500">Please check back later or contact your manager for task assignments.</p>
           </div>
         )}
       </div>
