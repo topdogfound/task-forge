@@ -41,7 +41,24 @@
 
         @routes
         @viteReactRefresh
-        @vite(['resources/js/app.tsx', "resources/js/pages/{$page['component']}.tsx"])
+                {{-- Conditional Vite loading based on environment --}}
+        @if (app()->environment('production'))
+            {{-- Production: Load built assets --}}
+            @if (file_exists(public_path('build/manifest.json')))
+                @vite(['resources/js/app.tsx', "resources/js/pages/{$page['component']}.tsx"])
+            @else
+                {{-- Fallback if build files don't exist --}}
+                <script>
+                    console.error('Vite build files not found. Please run: npm run build');
+                </script>
+                {{-- Optional: Add basic fallback assets if you have them --}}
+                <link rel="stylesheet" href="{{ asset('css/app.css') }}">
+                <script src="{{ asset('js/app.js') }}"></script>
+            @endif
+        @else
+            {{-- Development: Use Vite dev server --}}
+            @vite(['resources/js/app.tsx', "resources/js/pages/{$page['component']}.tsx"])
+        @endif
         @inertiaHead
     </head>
     <body class="font-sans antialiased">
