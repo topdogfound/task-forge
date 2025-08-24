@@ -12,7 +12,7 @@ RUN npm install --include=dev
 # Copy rest of the project
 COPY . .
 
-# Try to build assets, if no build script exists -> just make empty build dir
+# Build assets (fallback: ensure empty build dir exists)
 RUN npm run build || (echo "⚠️ Skipping npm build, creating empty build folder" && mkdir -p public/build)
 
 
@@ -35,8 +35,8 @@ WORKDIR /var/www/html
 # Copy application source
 COPY . .
 
-# Copy built frontend assets (if they exist)
-COPY --from=node-builder /app/public/build ./public/build
+# ✅ Copy entire public folder from node-builder (ensures /public/build always exists)
+COPY --from=node-builder /app/public ./public
 
 # Install PHP dependencies including dev
 RUN composer install --no-interaction --prefer-dist --no-scripts
