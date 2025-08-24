@@ -19,6 +19,12 @@ export default defineConfig({
     },
     build: {
         outDir: 'dist', // make sure it's 'dist'
+        manifest: true,
+        rollupOptions: {
+            output: {
+                manualChunks: undefined,
+            }
+        }
     },
     resolve: {
         alias: {
