@@ -1,6 +1,6 @@
 import type React from "react";
 import { useState, useEffect } from "react";
-import { useForm, router } from "@inertiajs/react";
+import { useForm } from "@inertiajs/react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -33,10 +33,13 @@ export function CompleteTaskModal({ task, trigger }: CompleteTaskModalProps) {
   const [open, setOpen] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
 
-  const { data, setData, post, processing, errors, reset } = useForm({
-    files: [] as File[],
+  const { data, setData, post, processing, errors, reset } = useForm<{
+    files: File[];
+  }>({
+    files: [],
   });
 
+  // Reset when modal opens
   useEffect(() => {
     if (open) {
       setSelectedFiles([]);
@@ -44,13 +47,13 @@ export function CompleteTaskModal({ task, trigger }: CompleteTaskModalProps) {
     }
   }, [open]);
 
+  // Keep form data in sync with selectedFiles
   useEffect(() => {
-    // Update form data whenever selectedFiles changes
-    setData('files', selectedFiles);
-  }, [selectedFiles, setData]);
+    setData("files", selectedFiles);
+  }, [selectedFiles]);
 
   if (!task || !task.permissions.can_complete || !task.user_task_id) return null;
-  
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     if (selectedFiles.length + files.length > task.number_of_uploads) {
@@ -72,22 +75,24 @@ export function CompleteTaskModal({ task, trigger }: CompleteTaskModalProps) {
       return;
     }
 
-    // Use post with the current data (files are already set via useEffect)
     post(route("tasks.complete", { userTask: task.user_task_id }), {
+      forceFormData: true, // 👈 ensures multipart upload
       onSuccess: () => {
         setOpen(false);
         setSelectedFiles([]);
         reset();
       },
       onError: (errors) => {
-        console.log('Upload errors:', errors);
-      }
+        console.log("Upload errors:", errors);
+      },
     });
   };
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>{trigger || <Button>Complete</Button>}</DialogTrigger>
+      <DialogTrigger asChild>
+        {trigger || <Button>Complete</Button>}
+      </DialogTrigger>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle>{task.name}</DialogTitle>
@@ -112,24 +117,36 @@ export function CompleteTaskModal({ task, trigger }: CompleteTaskModalProps) {
                 multiple={task.number_of_uploads > 1}
                 onChange={handleFileChange}
                 className="hidden"
-                accept="*/*"
+                accept="image/jpeg,image/png,image/webp"
               />
             </label>
-            {errors.files && <span className="text-red-600 text-sm">{errors.files}</span>}
+            {errors.files && (
+              <span className="text-red-600 text-sm">{errors.files}</span>
+            )}
           </div>
 
           {selectedFiles.length > 0 && (
             <div className="space-y-2 max-h-32 overflow-y-auto">
               {selectedFiles.map((file, i) => (
-                <div key={i} className="flex items-center justify-between p-2 bg-gray-50 rounded-md">
+                <div
+                  key={i}
+                  className="flex items-center justify-between p-2 bg-gray-50 rounded-md"
+                >
                   <div className="flex items-center space-x-2 flex-1 min-w-0">
                     <FileIcon className="w-4 h-4 text-gray-500 flex-shrink-0" />
                     <div className="min-w-0 flex-1">
                       <p className="text-sm truncate">{file.name}</p>
-                      <p className="text-xs text-gray-500">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
+                      <p className="text-xs text-gray-500">
+                        {(file.size / 1024 / 1024).toFixed(2)} MB
+                      </p>
                     </div>
                   </div>
-                  <Button type="button" variant="ghost" size="sm" onClick={() => removeFile(i)}>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => removeFile(i)}
+                  >
                     <X className="w-4 h-4" />
                   </Button>
                 </div>
@@ -138,10 +155,18 @@ export function CompleteTaskModal({ task, trigger }: CompleteTaskModalProps) {
           )}
 
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={processing}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setOpen(false)}
+              disabled={processing}
+            >
               Cancel
             </Button>
-            <Button type="submit" disabled={selectedFiles.length === 0 || processing}>
+            <Button
+              type="submit"
+              disabled={selectedFiles.length === 0 || processing}
+            >
               {processing ? "Submitting..." : "Submit Task"}
             </Button>
           </DialogFooter>

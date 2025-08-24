@@ -23,6 +23,9 @@ class TaskController extends Controller
         $tasks = Task::query()
             ->when($user->role === 'manager', fn($query) => $query->where('created_by', $user->id))
             ->where('is_active', true)
+            ->whereDoesntHave('userTasks', function ($q) {
+                $q->where('status', 'completed');
+            })
             ->latest()
             ->paginate(5)
             ->withQueryString();

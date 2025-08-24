@@ -1,76 +1,66 @@
-# Stage 1 - Frontend Build
-FROM node:24.5.0-alpine AS frontend
+# -------------------------
+# Stage 1: Build frontend + install dependencies
+# -------------------------
+FROM node:24.5.0 AS node-builder
+
 WORKDIR /app
 
-# Copy package files first for better caching
 COPY package*.json ./
-RUN npm ci --only=production
+RUN npm install --include=dev
 
-# Copy source and build
 COPY . .
-RUN npm run build
+RUN npm run build || echo "No frontend build step found"
 
-# Stage 2 - Backend
-FROM php:8.4.1-fpm-alpine
 
-# Install system dependencies and PHP extensions
-RUN apk add --no-cache \
-    git \
-    curl \
-    zip \
-    unzip \
-    sqlite \
-    sqlite-dev \
-    oniguruma-dev \
-    libzip-dev \
-    bash \
-    && docker-php-ext-install \
-    pdo \
-    pdo_mysql \
-    pdo_sqlite \
-    mbstring \
-    zip
+# -------------------------
+# Stage 2: PHP + Composer
+# -------------------------
+FROM php:8.4-cli AS php-runtime
+
+# Install required PHP extensions & system deps
+RUN apt-get update && apt-get install -y \
+    unzip git curl sqlite3 libsqlite3-dev libzip-dev \
+    && docker-php-ext-install pdo pdo_sqlite zip \
+    && rm -rf /var/lib/apt/lists/*
 
 # Install Composer
 COPY --from=composer:2.8.3 /usr/bin/composer /usr/bin/composer
 
-# Set working directory
-WORKDIR /var/www
+WORKDIR /var/www/html
 
-# Create non-root user for security
-RUN addgroup -g 1000 -S www && \
-    adduser -u 1000 -D -S -G www www
+# Copy application code
+COPY . .
 
-# Copy application files
-COPY --chown=www:www . .
+# Copy built frontend (if any)
+COPY --from=node-builder /app/public ./public
 
-# Copy frontend build from previous stage
-COPY --from=frontend --chown=www:www /app/dist ./public/build
+# Install PHP dependencies (include dev)
+RUN composer install --no-interaction --prefer-dist --no-scripts
 
-# Create SQLite database directory with proper permissions
-RUN mkdir -p database && \
-    touch database/database.sqlite && \
-    chown -R www:www database && \
-    chmod -R 775 database
+# Ensure Laravel storage & cache dirs are writable
+RUN mkdir -p storage bootstrap/cache \
+    && chmod -R 775 storage bootstrap/cache \
+    && chown -R www-data:www-data storage bootstrap/cache
 
-# Install PHP dependencies
-RUN composer install --no-interaction --optimize-autoloader --no-cache
+# Run migrations + seed on container start
+# Using entrypoint for dynamic DB readiness
+COPY <<EOF /usr/local/bin/start-container
+#!/bin/sh
+set -e
 
-# Configure PHP-FPM to listen on port 10000 and set user
-RUN sed -i 's/listen = 127.0.0.1:9000/listen = 0.0.0.0:10000/' /usr/local/etc/php-fpm.d/www.conf && \
-    sed -i 's/user = www-data/user = www/' /usr/local/etc/php-fpm.d/www.conf && \
-    sed -i 's/group = www-data/group = www/' /usr/local/etc/php-fpm.d/www.conf
+# Ensure SQLite file exists
+touch /var/www/html/database/database.sqlite
+chmod 664 /var/www/html/database/database.sqlite
 
-# Copy and set up entrypoint
-COPY --chown=www:www entrypoint.sh /usr/local/bin/entrypoint.sh
-RUN chmod +x /usr/local/bin/entrypoint.sh
+# Run migrations + seed
+php artisan migrate --force --seed
 
-# Switch to non-root user
-USER www
+# Start Laravel server on Render's expected port
+php artisan serve --host=0.0.0.0 --port=10000
+EOF
 
-# Expose port
+RUN chmod +x /usr/local/bin/start-container
+
 EXPOSE 10000
 
-# Set entrypoint and command
-ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
-CMD ["php-fpm", "-F"]
+ENTRYPOINT ["start-container"]

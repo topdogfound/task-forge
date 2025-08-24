@@ -4,7 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\UserTask;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
+use App\Models\Upload;
+use Illuminate\Support\Facades\Validator;
 
 class UserTaskController extends Controller
 {
@@ -57,78 +58,32 @@ class UserTaskController extends Controller
     {
         $task = $userTask->task;
 
-        // Validate request
+        // Validate required number of files
         $request->validate([
-            'files'   => 'required|array|min:1',
-            'files.*' => 'file|max:5120', // 5MB max per file
+            'files'   => "required|array|size:{$task->number_of_uploads}",
+            'files.*' => 'required|mimes:jpg,jpeg,png,webp|max:2048',
         ]);
 
-        $files = $request->file('files');
+        foreach ($request->file('files') as $file) {
+            $filename = $userTask->id . '_' . time() . '_' . $file->getClientOriginalName();
 
-        // Ensure we have files and they're not null
-        if (!$files || !is_array($files)) {
-            return back()->withErrors([
-                'files' => ['No files were uploaded.']
+            // Save with original filename
+            $path = $file->storeAs("uploads/{$userTask->id}", $filename, 'public');
+
+            Upload::create([
+                'user_task_id' => $userTask->id,
+                'file_path'    => $path,
             ]);
         }
 
-        // Filter out any null values from the files array
-        $files = array_filter($files, function ($file) {
-            return $file !== null && $file->isValid();
-        });
 
-        // Enforce exact number of uploads
-        if (count($files) !== $task->number_of_uploads) {
-            return back()->withErrors([
-                'files' => ["You must upload exactly {$task->number_of_uploads} file(s). You uploaded " . count($files) . " file(s)."]
-            ]);
-        }
-
-        // Store files with better error handling
-        $uploadedPaths = [];
-
-        try {
-            foreach ($files as $index => $file) {
-                if (!$file || !$file->isValid()) {
-                    return back()->withErrors([
-                        "files.{$index}" => 'The uploaded file is invalid.'
-                    ]);
-                }
-
-                // Check file size before storing
-                if ($file->getSize() > 5120 * 1024) { // 5MB in bytes
-                    return back()->withErrors([
-                        "files.{$index}" => 'The file is too large. Maximum size is 5MB.'
-                    ]);
-                }
-
-                // Try to store the file with a custom name
-                $fileName = time() . '_' . $index . '_' . $file->getClientOriginalName();
-                $path = $file->storeAs('user-task-uploads', $fileName, 'public');
-
-                if (!$path) {
-                    return back()->withErrors([
-                        "files.{$index}" => 'Failed to upload the file. Please check server permissions.'
-                    ]);
-                }
-
-                $uploadedPaths[] = $path;
-            }
-        } catch (\Exception $e) {
-            return back()->withErrors([
-                'files' => 'An error occurred while uploading files. Please try again.'
-            ]);
-        }
-
-        // Update task
+        // Mark user task as completed
         $userTask->update([
-            'status'         => 'completed',
-            'completed_at'   => now(),
-            'uploaded_files' => $uploadedPaths, // assuming JSON column
+            'status' => 'completed',
+            'completed_at' => now(),
         ]);
 
-        return redirect()->route('tasks.index')
-            ->with('success', "Task submitted successfully: {$task->name}");
+        return back()->with('success', 'Task completed successfully!');
     }
 
 
